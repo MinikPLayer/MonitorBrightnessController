@@ -1,0 +1,48 @@
+﻿<Window x:Class="WinDDC_UI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WinDDC_UI"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="Auto"
+        HorizontalAlignment="Stretch"
+        Style="{StaticResource CustomWindowStyle}"
+        WindowStyle="None"
+        Topmost="True"
+        SizeToContent="Width"
+        ShowInTaskbar="False">
+
+    <StackPanel>
+        <ListBox ItemsSource="{Binding Monitors, Mode=OneWay}" x:Name="lbMonitors" HorizontalAlignment="Stretch">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <Grid HorizontalAlignment="Stretch">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="30"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Column="0" Text="{Binding .}" Margin="5"/>
+                        <TextBlock Grid.Column="1" Text="{Binding Brightness, Mode=OneWay}" Margin="5"/>
+                        <Slider IsMoveToPointEnabled="True" Grid.Column="2" Value="{Binding Brightness, Mode=TwoWay}" TickFrequency="1" Minimum="0" Maximum="100" MinWidth="100"/>
+                    </Grid>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+        <Grid HorizontalAlignment="Stretch">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="30"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock x:Name="CombinedBrightnessText" Grid.Column="0" Text="-" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <Slider  x:Name="CombinedBrightnessValue" HorizontalAlignment="Stretch" IsMoveToPointEnabled="True" Minimum="0" Maximum="100" Margin="5" Height="30" Grid.Column="1" ValueChanged="Slider_ValueChanged"/>
+        </Grid>
+        
+    </StackPanel>
+
+</Window>
