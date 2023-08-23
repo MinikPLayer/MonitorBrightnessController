@@ -1,4 +1,5 @@
 ﻿using FramePFX.Themes;
+using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -78,6 +79,19 @@ namespace WinDDC_UI
             this.DataContext = this;
 
             UpdateMonitors();
+
+            SystemEvents.UserPreferenceChanged += (s, e) =>
+            {
+                if (e.Category == UserPreferenceCategory.Desktop)
+                    UpdateMonitors();
+
+                if (e.Category == UserPreferenceCategory.General)
+                {
+                    // Restart application when theme changes - a little janky, but works fine with WPF and this theming solution
+                    System.Diagnostics.Process.Start(System.Diagnostics.Process.GetCurrentProcess().MainModule!.FileName!);
+                    App.Current.Shutdown();
+                }
+            };
         }
 
         protected override void OnActivated(EventArgs e)

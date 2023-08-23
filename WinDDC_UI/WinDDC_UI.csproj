@@ -9,6 +9,8 @@
 
   <ItemGroup>
     <None Remove="icon.ico" />
+    <None Remove="icon_dark.ico" />
+    <None Remove="icon_light.ico" />
     <None Remove="test.ico" />
   </ItemGroup>
 
@@ -22,7 +24,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="icon.ico" />
+    <Resource Include="icon_dark.ico" />
+    <Resource Include="icon_light.ico" />
   </ItemGroup>
 
 </Project>
