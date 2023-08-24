@@ -101,6 +101,8 @@ namespace WinDDC_UI
             if(App.icon == null) 
                 throw new Exception("App.icon is null");
 
+            UpdateMonitors();
+
             var iconData = App.icon.IconData;
             var iconHandle = iconData.WindowHandle;
             var iconId = iconData.TaskbarIconId;
@@ -121,7 +123,6 @@ namespace WinDDC_UI
 
             this.Left = iconLocation.left - this.Width;
             this.Top = iconLocation.top - this.Height;
-
         }
 
         protected override void OnDeactivated(EventArgs e)
@@ -136,11 +137,19 @@ namespace WinDDC_UI
             this.Hide();
         }
 
-        void UpdateMonitors()
+        async void UpdateMonitors(List<Monitor>? monitors = null)
         {
-            var newMonitors = Monitor.Detect();
+            if(monitors == null)
+                monitors = await Monitor.Detect();
+
+            if(!Dispatcher.CheckAccess())
+            {
+                Dispatcher.Invoke(() => UpdateMonitors(monitors));
+                return;
+            }
+
             Monitors.Clear();
-            foreach (Monitor monitor in newMonitors)
+            foreach (Monitor monitor in monitors)
             {
                 var data = new MonitorData(monitor);
                 Monitors.Add(data);
