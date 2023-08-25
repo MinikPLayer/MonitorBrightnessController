@@ -16,7 +16,7 @@ namespace WinDDC_UI
             window.Activate();
         });
         public ICommand? ExitApplicationCommand => new RelayCommand(() => App.Current.Shutdown());
-        public ICommand? HideWindowCommand => new RelayCommand(() => App.Current.MainWindow?.Hide());
+        public ICommand? HideWindowCommand => new RelayCommand(() => App.Current.MainWindow?.Close());
 
     }
 }

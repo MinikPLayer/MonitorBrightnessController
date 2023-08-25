@@ -7,8 +7,8 @@
         mc:Ignorable="d"
         Title="MainWindow" Height="Auto"
         HorizontalAlignment="Stretch"
-        Style="{StaticResource CustomWindowStyle}"
         WindowStyle="None"
+        Style="{DynamicResource CustomWindowStyle}"
         Topmost="True"
         SizeToContent="Width"
         ShowInTaskbar="False">

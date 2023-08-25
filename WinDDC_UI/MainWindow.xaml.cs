@@ -86,11 +86,8 @@ namespace WinDDC_UI
                     UpdateMonitors();
 
                 if (e.Category == UserPreferenceCategory.General)
-                {
-                    // Restart application when theme changes - a little janky, but works fine with WPF and this theming solution
-                    System.Diagnostics.Process.Start(System.Diagnostics.Process.GetCurrentProcess().MainModule!.FileName!);
-                    App.Current.Shutdown();
-                }
+                    ((App)App.Current).UpdateTheme();
+                
             };
         }
 
@@ -131,8 +128,15 @@ namespace WinDDC_UI
             this.Close();
         }
 
+        bool forceClose = false;
         protected override void OnClosing(CancelEventArgs e)
         {
+            if(forceClose)
+            {
+                base.OnClosing(e);
+                return;
+            }
+
             e.Cancel = true;
             this.Hide();
         }

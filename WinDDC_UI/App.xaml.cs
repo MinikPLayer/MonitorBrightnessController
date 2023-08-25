@@ -1,4 +1,5 @@
-﻿using Hardcodet.Wpf.TaskbarNotification;
+﻿using FramePFX.Themes;
+using Hardcodet.Wpf.TaskbarNotification;
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
@@ -7,6 +8,7 @@ using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using WPF.Themes;
 
 namespace WinDDC_UI
 {
@@ -17,7 +19,7 @@ namespace WinDDC_UI
     {
         public static TaskbarIcon? icon;
 
-        private static bool IsLightTheme()
+        public static bool IsLightTheme()
         {
             using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
             var value = key?.GetValue("AppsUseLightTheme");
@@ -26,20 +28,30 @@ namespace WinDDC_UI
 
         public void UpdateTheme()
         {
+            var currentTheme = IsLightTheme();
             var dictionary = Resources.MergedDictionaries[0];
-            dictionary.MergedDictionaries.Clear();
+            try
+            {
+                dictionary.MergedDictionaries.Clear();
+            }
+            // Exception is sometimes thrown, but it still works
+            // (Probably because Window is already open and uses these styles, but they will be replaced later in this function call)
+            catch (ArgumentOutOfRangeException) { } 
 
-            var source = IsLightTheme() ? "/Themes/ColourDictionaries/LightTheme.xaml" : "/Themes/ColourDictionaries/SoftDark.xaml";
-            Resources.MergedDictionaries[0].MergedDictionaries.Add(new ResourceDictionary() { Source = new Uri(source, UriKind.RelativeOrAbsolute) });
+            var source = currentTheme ? "/Themes/ColourDictionaries/LightTheme.xaml" : "/Themes/ColourDictionaries/DeepDark.xaml";
+            dictionary.MergedDictionaries.Add(new ResourceDictionary() { Source = new Uri(source, UriKind.RelativeOrAbsolute) });
+
+            dictionary.MergedDictionaries.Add(new ResourceDictionary() { Source = new Uri("/Themes/ControlColours.xaml", UriKind.RelativeOrAbsolute) });
+            dictionary.MergedDictionaries.Add(new ResourceDictionary() { Source = new Uri("/Themes/Controls.xaml", UriKind.RelativeOrAbsolute) });
+
+            icon = (TaskbarIcon)FindResource("NotifyIcon");
+            source = currentTheme ? "icon_light.ico" : "icon_dark.ico";
+            icon.IconSource = new System.Windows.Media.Imaging.BitmapImage(new Uri($"pack://application:,,,/{source}"));
         }
 
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
-
-            icon = (TaskbarIcon)FindResource("NotifyIcon");
-            var source = IsLightTheme() ? "icon_light.ico" : "icon_dark.ico";
-            icon.IconSource = new System.Windows.Media.Imaging.BitmapImage(new Uri($"pack://application:,,,/{source}"));
 
             UpdateTheme();
         }
