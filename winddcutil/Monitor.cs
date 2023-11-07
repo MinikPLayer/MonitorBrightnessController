@@ -1,5 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace winddcutil
@@ -67,7 +66,7 @@ namespace winddcutil
         public void SetBrightness(uint value)
         {
             targetBrightness = value;
-            if(setBrightnessTask.IsCompleted)
+            if (setBrightnessTask.IsCompleted)
             {
                 setBrightnessTask = Task.Run(() =>
                 {
@@ -83,38 +82,46 @@ namespace winddcutil
             return Identifier;
         }
 
-        public static async Task<List<Monitor>> Detect()
+        public static async Task<List<Monitor>?> Detect()
         {
-            return await Task.Run(() =>
+            try
             {
-                var newMonitors = new ConcurrentBag<Monitor>();
-                var enumRet = MonitorPInvoke.EnumDisplayMonitors(
-                    IntPtr.Zero,
-                    IntPtr.Zero,
-                    (IntPtr hMonitor, IntPtr hdcMonitor, ref Rect lprcMonitor, IntPtr data) =>
-                    {
-                        uint numberOfPhysicalMonitors = 0;
-                        if (!MonitorPInvoke.GetNumberOfPhysicalMonitorsFromHMONITOR(hMonitor, ref numberOfPhysicalMonitors))
-                            throw new Exception("Cannot get number of physical monitors");
 
-                        var physicalMonitors = new PHYSICAL_MONITOR[numberOfPhysicalMonitors];
-                        if (!MonitorPInvoke.GetPhysicalMonitorsFromHMONITOR(hMonitor, numberOfPhysicalMonitors, physicalMonitors))
-                            throw new Exception("Cannot get physical monitors");
+                return await Task.Run(() =>
+                {
+                    var newMonitors = new ConcurrentBag<Monitor>();
+                    var enumRet = MonitorPInvoke.EnumDisplayMonitors(
+                        IntPtr.Zero,
+                        IntPtr.Zero,
+                        (IntPtr hMonitor, IntPtr hdcMonitor, ref Rect lprcMonitor, IntPtr data) =>
+                        {
+                            uint numberOfPhysicalMonitors = 0;
+                            if (!MonitorPInvoke.GetNumberOfPhysicalMonitorsFromHMONITOR(hMonitor, ref numberOfPhysicalMonitors))
+                                throw new Exception("Cannot get number of physical monitors");
 
-                        foreach (var p in physicalMonitors)
-                            newMonitors.Add(new Monitor(p.hPhysicalMonitor, p.szPhysicalMonitorDescription));
+                            var physicalMonitors = new PHYSICAL_MONITOR[numberOfPhysicalMonitors];
+                            if (!MonitorPInvoke.GetPhysicalMonitorsFromHMONITOR(hMonitor, numberOfPhysicalMonitors, physicalMonitors))
+                                throw new Exception("Cannot get physical monitors");
 
-                        return true;
-                    },
-                    IntPtr.Zero
-                );
+                            foreach (var p in physicalMonitors)
+                                newMonitors.Add(new Monitor(p.hPhysicalMonitor, p.szPhysicalMonitorDescription));
 
-                if (!enumRet)
-                    throw new Exception("Cannot enum display monitors");
+                            return true;
+                        },
+                        IntPtr.Zero
+                    );
 
-                return newMonitors.ToList();
-            });
+                    if (!enumRet)
+                        throw new Exception("Cannot enum display monitors");
 
+                    return newMonitors.ToList();
+                });
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                return null;
+            }
         }
 
         public Monitor(IntPtr handle, string identifier)

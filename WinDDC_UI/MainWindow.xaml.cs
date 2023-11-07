@@ -143,8 +143,17 @@ namespace WinDDC_UI
 
         async void UpdateMonitors(List<Monitor>? monitors = null)
         {
-            if(monitors == null)
+            if (monitors == null)
+            {
                 monitors = await Monitor.Detect();
+                if(monitors == null)
+                {
+                    if (Monitors.Count == 0)
+                        throw new Exception("Cannot update monitors");
+
+                    return;
+                }
+            }
 
             if(!Dispatcher.CheckAccess())
             {
