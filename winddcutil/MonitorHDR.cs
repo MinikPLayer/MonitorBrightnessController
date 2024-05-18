@@ -427,7 +427,25 @@ namespace winddcutil
         public const double MaxBrightness = 6.0;
         public const double NitsPerUnit = 80.0;
 
-        private static double lastBrightness = MaxBrightness;
+        private static string lastBrightnessSaveFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Minik", "MBTC", "lastHDRBrightness.txt");
+        private static void EnsureSaveDirectoryExists()
+        {
+            var dir = Path.GetDirectoryName(lastBrightnessSaveFilePath);
+            if (dir != null && !Directory.Exists(dir))
+                Directory.CreateDirectory(dir);
+        }
+
+        private static double _lastBrightness = MaxBrightness;
+        private static double lastBrightness
+        {
+            get => _lastBrightness;
+            set
+            {
+                _lastBrightness = value;
+                EnsureSaveDirectoryExists();
+                File.WriteAllText(lastBrightnessSaveFilePath, value.ToString());
+            }
+        }
 
         public override string ToString() => "HDR Brightness";
 
@@ -455,6 +473,20 @@ namespace winddcutil
 
         static MonitorHDR()
         {
+            EnsureSaveDirectoryExists();
+            if (File.Exists(lastBrightnessSaveFilePath))
+            {
+                if(double.TryParse(File.ReadAllText(lastBrightnessSaveFilePath), out double b))
+                {
+                    lastBrightness = b;
+                }
+                else
+                {
+                    Console.WriteLine("Error reading last brightness value, resetting to default");
+                    lastBrightness = MaxBrightness;
+                }
+            }
+
             var brightness = GetGlobalBrightness();
             SetGlobalBrightness(brightness);
         }
