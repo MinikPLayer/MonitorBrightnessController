@@ -1,22 +1,15 @@
-﻿using FramePFX.Themes;
+﻿using Bio;
+using Bio.Win32;
+using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Linq;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 using winddcutil;
 
 namespace WinDDC_UI
@@ -33,6 +26,12 @@ namespace WinDDC_UI
         {
             set
             {
+                if (value < 0)
+                    value = 0;
+
+                if(value > MaxValue)
+                    value = (uint)MaxValue;
+
                 monitor.SetBrightness(value);
                 _brightness = value;
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Brightness)));
@@ -111,11 +110,14 @@ namespace WinDDC_UI
         public MainWindowViewModel ViewModel => (MainWindowViewModel)DataContext;
         public ObservableCollection<MonitorData> Monitors => ViewModel.Monitors;
 
+        private KeySpy hotkeyManager;
+
         public MainWindow()
         {
             InitializeComponent();
-            this.Hide();
+            
             this.DataContext = new MainWindowViewModel();
+            this.Hide();
 
             UpdateMonitors();
             SystemEvents.UserPreferenceChanged += (s, e) =>
@@ -127,6 +129,30 @@ namespace WinDDC_UI
                     ((App)App.Current).UpdateTheme();
                 
             };
+
+            hotkeyManager = new KeySpy();
+            hotkeyManager.InputDetected += HotkeyManager_InputDetected;
+            hotkeyManager.Activate();
+        }
+
+        private void HotkeyManager_InputDetected(object? sender, KeyInfo e)
+        {
+            if(e.ModifierKeys == (Bio.ModifierKeys.ControlLeft | Bio.ModifierKeys.ShiftLeft))
+            {
+                Action? action = null;
+                if (e.VK == VK.UP)
+                    action = () => AllMonitorsBrightnessUp();
+                else if (e.VK == VK.DOWN)
+                    action = () => PrimaryBrightnessDown();
+
+                if (action != null)
+                    Dispatcher.Invoke(action);
+            }
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            hotkeyManager.Dispose();
         }
 
         protected override void OnActivated(EventArgs e)
@@ -237,6 +263,28 @@ namespace WinDDC_UI
         }
 
         private void Button_Click(object sender, RoutedEventArgs e) => UpdateMonitors();
+
+        private void AllMonitorsAction(Action<MonitorData> action)
+        {
+            foreach (var m in Monitors)
+                action(m);
+        }
+
+        public void AllMonitorsBrightnessUp(uint step = 5)
+        {
+            AllMonitorsAction((m) =>
+            {
+                m.Brightness += step;
+            });
+        }
+
+        public void PrimaryBrightnessDown(uint step = 5)
+        {
+            AllMonitorsAction((m) =>
+            {
+                m.Brightness -= step;
+            });
+        }
 
         bool disableCombinedBrightnessChange = false;
         private void Slider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
