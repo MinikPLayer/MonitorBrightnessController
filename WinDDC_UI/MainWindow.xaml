@@ -11,9 +11,11 @@
         Style="{DynamicResource CustomWindowStyle}"
         Topmost="True"
         SizeToContent="Width"
-        ShowInTaskbar="False">
+        ShowInTaskbar="False"
+        >
 
     <StackPanel>
+        <CheckBox Content="Allow extended" Margin="5" IsChecked="{Binding AllowExtended, Mode=TwoWay}"/>
         <ListBox ItemsSource="{Binding Monitors, Mode=OneWay}" x:Name="lbMonitors" HorizontalAlignment="Stretch">
             <ListBox.ItemTemplate>
                 <DataTemplate>
@@ -29,7 +31,7 @@
 
                         <TextBlock Grid.Column="0" Text="{Binding .}" Margin="5"/>
                         <TextBlock Grid.Column="1" Text="{Binding Brightness, Mode=OneWay}" Margin="5"/>
-                        <Slider IsMoveToPointEnabled="True" Grid.Column="2" Value="{Binding Brightness, Mode=TwoWay}" TickFrequency="1" Minimum="0" Maximum="100" MinWidth="100"/>
+                        <Slider IsMoveToPointEnabled="True" Grid.Column="2" Value="{Binding Brightness, Mode=TwoWay}" TickFrequency="1" Minimum="0" Maximum="{Binding MaxValue, Mode=OneWay}" MinWidth="100"/>
                     </Grid>
                 </DataTemplate>
             </ListBox.ItemTemplate>

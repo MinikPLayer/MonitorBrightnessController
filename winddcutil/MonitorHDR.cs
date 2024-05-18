@@ -352,6 +352,15 @@ namespace winddcutil
         [DllImport("user32")]
         public static extern int DisplayConfigGetDeviceInfo(ref DISPLAYCONFIG_TARGET_DEVICE_NAME requestPacket);
 
+        [DllImport("user32.dll")]
+        public static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint dwFlags);
+        [DllImport("kernel32", CharSet = CharSet.Unicode)]
+        public static extern IntPtr LoadLibrary(string lpFileName);
+        [DllImport("kernel32", CharSet = CharSet.Ansi, ExactSpelling = true, SetLastError = true)]
+        public static extern IntPtr GetProcAddress(IntPtr hModule, int address);
+
+        public delegate void DwmpSDRToHDRBoostPtr(IntPtr monitor, double brightness);
+
         public static float GetHDRNits(DISPLAYCONFIG_PATH_INFO path)
         {
             var sdrInfo = new DISPLAYCONFIG_SDR_WHITE_LEVEL();
@@ -366,7 +375,7 @@ namespace winddcutil
             return sdrInfo.SDRWhiteLevel * 80f / 1000f;
         }
 
-        public static List<DISPLAYCONFIG_PATH_INFO> GetHDRPaths()
+        public static bool IsHDREnabled()
         {
             var err = GetDisplayConfigBufferSizes(QDC.QDC_ONLY_ACTIVE_PATHS, out var pathCount, out var modeCount);
             if (err != 0)
@@ -378,7 +387,6 @@ namespace winddcutil
             if (err != 0)
                 throw new Win32Exception(err);
 
-            var retPaths = new List<DISPLAYCONFIG_PATH_INFO>();
             foreach (var path in paths)
             {
                 // get display name
@@ -406,43 +414,59 @@ namespace winddcutil
                 Debug.WriteLine("");
 
                 if (colorInfo.advancedColorEnabled)
-                    retPaths.Add(path);
+                    return true;
                 
             }
 
-            return retPaths;
+            return false;
         }
     }
 
     public class MonitorHDR : Monitor
     {
-        private DISPLAYCONFIG_PATH_INFO path;
-        public const float MaxNits = 480;
+        public const double MaxBrightness = 6.0;
+        public const double NitsPerUnit = 80.0;
 
-        public override uint GetBrightness()
+        private static double lastBrightness = MaxBrightness;
+
+        public override string ToString() => "HDR Brightness";
+
+        public override uint GetTypicalMax() => 100;
+        public override uint GetExtendedMax() => 200;
+
+        public static uint GetGlobalBrightness() => (uint)(lastBrightness * 100f / MaxBrightness);
+        public override uint GetBrightness() => GetGlobalBrightness();
+
+        public static void SetGlobalBrightness(uint brightness)
         {
-            var nits = GetHDRNits(path);
-            return (uint)(nits * 100f / MaxNits);
+            var monitor = MonitorFromWindow(IntPtr.Zero, 1);
+            var dwmapi = LoadLibrary("dwmapi.dll");
+
+            DwmpSDRToHDRBoostPtr changeBrightness = Marshal.GetDelegateForFunctionPointer<DwmpSDRToHDRBoostPtr>(GetProcAddress(dwmapi, 171));
+
+            var calcBrightness = brightness * (MaxBrightness / 100.0);
+            Debug.WriteLine("Calc brightness: " + calcBrightness);
+            lastBrightness = calcBrightness;
+            changeBrightness(monitor, calcBrightness);
+
         }
 
-        public override void SetBrightness(uint brightness)
-        {
-            throw new NotImplementedException();
-        }
+        public override void SetBrightness(uint brightness) => SetGlobalBrightness(brightness);
 
-        private MonitorHDR(DISPLAYCONFIG_PATH_INFO path)
+        static MonitorHDR()
         {
-            this.path = path;
+            var brightness = GetGlobalBrightness();
+            SetGlobalBrightness(brightness);
         }
 
         public static new async Task<List<Monitor>> Detect()
         {
             return await Task.Run(() =>
             {
-                var paths = HDRPInvoke.GetHDRPaths();
+                var useHdr = IsHDREnabled();
                 var ret = new List<Monitor>();
-                foreach(var p in paths)
-                    ret.Add(new MonitorHDR(p));
+                if(useHdr)
+                    ret.Add(new MonitorHDR());
 
                 return ret;
             });

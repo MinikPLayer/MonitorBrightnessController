@@ -8,6 +8,8 @@ namespace winddcutil
 {
     public abstract class Monitor
     {
+        public abstract uint GetExtendedMax();
+        public abstract uint GetTypicalMax();
         public abstract uint GetBrightness();
         public abstract void SetBrightness(uint brightness);
 
@@ -15,7 +17,8 @@ namespace winddcutil
         {
             var list = new List<Monitor>();
             list.AddRange(await MonitorHDR.Detect());
-            list.AddRange(await MonitorDDC.Detect());
+            if(list.Count == 0)
+                list.AddRange(await MonitorDDC.Detect());
 
             return list;
         }

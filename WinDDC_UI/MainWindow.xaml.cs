@@ -40,11 +40,46 @@ namespace WinDDC_UI
             get => _brightness;
         }
 
-        public MonitorData(Monitor monitor)
+        public float MaxValue { get; set; } = 100;
+
+        public bool AllowExtended
+        {
+            set
+            {
+                MaxValue = value ? monitor.GetExtendedMax() : monitor.GetTypicalMax();
+                this.PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(MaxValue)));
+            }
+        }
+
+        public override string? ToString() => monitor.ToString();
+
+        public MonitorData(Monitor monitor, bool allowExtended)
         {
             this.monitor = monitor;
             _brightness = this.monitor.GetBrightness();
+            AllowExtended = allowExtended;
         }
+    }
+
+    public class MainWindowViewModel : INotifyPropertyChanged
+    {
+        private bool allowExtended;
+
+        public bool AllowExtended
+        {
+            get { return allowExtended; }
+            set
+            {
+                allowExtended = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(AllowExtended)));
+                foreach (var m in Monitors)
+                    m.AllowExtended = value;
+            }
+        }
+
+        public ObservableCollection<MonitorData> Monitors { get; set; } = new ObservableCollection<MonitorData>();
+
+        public event PropertyChangedEventHandler? PropertyChanged;
     }
 
     /// <summary>
@@ -72,18 +107,17 @@ namespace WinDDC_UI
 
         [DllImport("shell32.dll", SetLastError = true)]
         private static extern int Shell_NotifyIconGetRect([In] ref NOTIFYICONIDENTIFIER identifier, [Out] out RECT iconLocation);
-
-        public ObservableCollection<MonitorData> Monitors { get; set; } = new ObservableCollection<MonitorData>();
-        public bool UseHDR { get; set; } = false;
+        
+        public MainWindowViewModel ViewModel => (MainWindowViewModel)DataContext;
+        public ObservableCollection<MonitorData> Monitors => ViewModel.Monitors;
 
         public MainWindow()
         {
             InitializeComponent();
             this.Hide();
-            this.DataContext = this;
+            this.DataContext = new MainWindowViewModel();
 
             UpdateMonitors();
-
             SystemEvents.UserPreferenceChanged += (s, e) =>
             {
                 if (e.Category == UserPreferenceCategory.Desktop)
@@ -99,7 +133,7 @@ namespace WinDDC_UI
         {
             base.OnActivated(e);
 
-            if(App.icon == null) 
+            if (App.icon == null)
                 throw new Exception("App.icon is null");
 
             UpdateMonitors();
@@ -116,14 +150,15 @@ namespace WinDDC_UI
             };
 
             var ret = Shell_NotifyIconGetRect(ref notifyIconIdentifier, out RECT iconLocation);
-            if(ret == 0x8004005)
+            if (ret == 0x8004005)
                 throw new Exception("Icon doesn't exist");
 
-            if(ret != 0)
+            if (ret != 0)
                 throw new Exception("Shell_NotifyIconGetRect failed");
 
-            this.Left = iconLocation.left - this.Width;
-            this.Top = iconLocation.top - this.Height;
+            var dpiScaleFactor = PresentationSource.FromVisual(this)?.CompositionTarget?.TransformToDevice.M11 ?? 1.0;
+            this.Left = (iconLocation.left - this.Width) / dpiScaleFactor;
+            this.Top = (iconLocation.top - this.Height) / dpiScaleFactor;
         }
 
         protected override void OnDeactivated(EventArgs e)
@@ -168,11 +203,11 @@ namespace WinDDC_UI
             Monitors.Clear();
             foreach (Monitor monitor in monitors)
             {
-                var data = new MonitorData(monitor);
+                var data = new MonitorData(monitor, ViewModel.AllowExtended);
                 Monitors.Add(data);
             }    
 
-            this.Height = 45 + 30 * Monitors.Count;
+            this.Height = 70 + 30 * Monitors.Count;
 
             if (Monitors.Count == 0)
                 return;

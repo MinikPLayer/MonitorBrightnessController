@@ -109,6 +109,9 @@ namespace winddcutil
         protected string Identifier { get; set; } = "";
         protected IntPtr Handle { get; set; } = IntPtr.Zero;
 
+        public override uint GetTypicalMax() => 100;
+        public override uint GetExtendedMax() => 100;
+
         public override uint GetBrightness()
         {
             uint minBrightness = 0;
