@@ -21,8 +21,10 @@ using winddcutil;
 
 namespace WinDDC_UI
 {
-    public class MonitorData : Monitor, INotifyPropertyChanged
+    public class MonitorData : INotifyPropertyChanged
     {
+        private Monitor monitor;
+
         uint _brightness = 0;
 
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -31,16 +33,17 @@ namespace WinDDC_UI
         {
             set
             {
-                SetBrightness(value);
+                monitor.SetBrightness(value);
                 _brightness = value;
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Brightness)));
             }
             get => _brightness;
         }
 
-        public MonitorData(Monitor physicalMon) : base(physicalMon) 
-        { 
-            _brightness = GetBrightness();
+        public MonitorData(Monitor monitor)
+        {
+            this.monitor = monitor;
+            _brightness = this.monitor.GetBrightness();
         }
     }
 
@@ -71,6 +74,7 @@ namespace WinDDC_UI
         private static extern int Shell_NotifyIconGetRect([In] ref NOTIFYICONIDENTIFIER identifier, [Out] out RECT iconLocation);
 
         public ObservableCollection<MonitorData> Monitors { get; set; } = new ObservableCollection<MonitorData>();
+        public bool UseHDR { get; set; } = false;
 
         public MainWindow()
         {
